@@ -6,3 +6,6 @@ blog.db-journal
 __pycache__/
 *.pyc
 *.pyo
+
+# media
+app/media/*
