@@ -1,3 +1,8 @@
 .env
 blog.db
 blog.db-journal
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
