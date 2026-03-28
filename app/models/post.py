@@ -6,8 +6,9 @@ from app.core.db import Base
 from datetime import datetime
 
 if TYPE_CHECKING:    
+    from .user import UserORM
     from .tag import TagORM
-    from .author import AuthorORM
+    from .category import CategoryORM
 
 post_tags = Table(
     'post_tags',
@@ -26,14 +27,20 @@ class PostORM(Base):
     image_url = mapped_column(String(300), nullable=True)
     create_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-    author_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("authors.id")
+    user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id")
     )
 
-    author: Mapped[Optional["AuthorORM"]] = relationship(
-        "AuthorORM",
+    user: Mapped[Optional["UserORM"]] = relationship(
+        "UserORM",
         back_populates="posts"
     )
+
+    category_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("categories.id", ondelete='SET NULL'), nullable=True, index=True
+    )
+
+    category = relationship('CategoryORM', back_populates='posts')
 
     tags: Mapped[List["TagORM"]] = relationship(
         secondary=post_tags,

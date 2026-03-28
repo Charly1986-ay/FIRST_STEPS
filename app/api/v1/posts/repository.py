@@ -1,9 +1,11 @@
 import math
 from typing import List, Optional, Tuple
-from fastapi import Query
+from fastapi import Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload, selectinload
-from app.models import PostORM, AuthorORM, TagORM
+from app.core.security import get_current_user
+from app.models import PostORM, TagORM
+from app.models.user import UserORM
 
 class PostRepository:
     def __init__(self, db: Session):
@@ -69,7 +71,7 @@ class PostRepository:
             .options(
                 # selectinload => se ocupa para n:m
                 selectinload(PostORM.tags),
-                joinedload(PostORM.author)
+                joinedload(PostORM.user)
             ).where(PostORM.tags.any(func.lower(TagORM.name).in_(normalized_tag_names))) # trae cualquier etiqueta que esta incluida en la lista normalized
             .order_by(PostORM.id.asc())
         )
@@ -77,22 +79,10 @@ class PostRepository:
         return self.db.execute(post_list).scalars().all()
     
 
-    def ensure_author(
-            self, 
-            name: str, 
-            email: str
-    ) -> AuthorORM:
+    def ensure_author(self, email: str) -> UserORM:
         author_obj = self.db.execute(
-            select(AuthorORM).where(AuthorORM.email==email)
+            select(UserORM).where(UserORM.email==email)
         ).scalar_one_or_none()
-
-        if author_obj:
-            return author_obj
-        
-        author_obj = AuthorORM(name=name, email=email)
-
-        self.db.add(author_obj)
-        self.db.flush()
 
         return author_obj
     
@@ -117,28 +107,24 @@ class PostRepository:
         return tag_obj
     
 
-    def create_post(
-            self, title: str, 
-            content: str, 
-            author: Optional[dict], 
-            tags: List[dict], 
-            image_url: str
-        ) -> PostORM:
-
+    def create_post(self, title: str, content: str, tags: List[dict], image_url: str, category_id: Optional[int], author: UserORM = Depends(get_current_user)) -> PostORM:
         author_obj = None
         if author:
             author_obj = self.ensure_author(
-                author['username'], author['email'])
+                author.email)
 
         post = PostORM(title=title, content=content,
-                       image_url=image_url, author=author_obj)
+                       image_url=image_url, user=author_obj, category_id=category_id)
 
         for tag in tags:
-            name = tag.get("name", "").strip().lower()
+            name = tag["name"].strip().lower()
             if not name:
                 continue
+
             tag_obj = self.ensure_tag(name)
-            post.tags.append(tag_obj)
+
+            if tag_obj not in post.tags:
+                post.tags.append(tag_obj)
 
         self.db.add(post)
         self.db.flush()
