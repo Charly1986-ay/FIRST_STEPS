@@ -81,13 +81,13 @@ class PostCreate(BaseModel):
                     tag_objs.append(Tag(name=name))
         return cls(title=title, content=content, category_id=category_id, tags=tag_objs)
     
-
 class PostUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=3, max_length=100)
     content: Optional[str] = None
 
 class PostPublic(PostBase):
-    id: int    
+    id: int  
+    slug: str  
 
     # ConfigDict es una configuración que recibe un sqlalchemy y lo convierte JSON
     model_config = ConfigDict(from_attributes=True)
@@ -99,13 +99,15 @@ class PostSummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class PaginatedPost(BaseModel):
-    page:int
+    page: int
     per_page: int
-    total: int   
+    total: int
     total_pages: int
     has_prev: bool
     has_next: bool
-    order_by: Literal['id', 'title']
-    direction: Literal['asc', 'desc']
-    search: Optional[str] = None
+    order_by: str
+    direction: str
+    search: Optional[str]
     items: List[PostPublic]
+
+    model_config = ConfigDict(from_attributes=True)

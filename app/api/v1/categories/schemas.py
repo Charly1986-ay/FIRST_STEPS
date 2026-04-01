@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 class CategoryBase(BaseModel):
     name: str = Field(min_length=2, max_length=60)
@@ -14,4 +14,4 @@ class CategoryUpdate(BaseModel):
 class CategoryPublic(CategoryBase):
     id: int
 
-    model_config = {'from attributes': True}
+    model_config = ConfigDict(from_attributes=True)

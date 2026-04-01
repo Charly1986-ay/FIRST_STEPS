@@ -1,4 +1,5 @@
 import math
+from token import OP
 from typing import List, Optional, Tuple
 from fastapi import Depends, Query
 from sqlalchemy import func, select
@@ -6,6 +7,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from app.core.security import get_current_user
 from app.models import PostORM, TagORM
 from app.models.user import UserORM
+from app.utils.slugify_utils import ensure_unique_slug, slugify_base
 
 class PostRepository:
     def __init__(self, db: Session):
@@ -18,6 +20,11 @@ class PostRepository:
         post_find = select(PostORM).where(PostORM.id == post_id)
         return self.db.execute(post_find).scalar_one_or_none()
     
+    def get_by_slug(self, slug: str) -> Optional[PostORM]:
+        query = (
+            select(PostORM).where(PostORM.slug==slug)
+        )
+        return self.db.execute(query).scalar_one_or_none()
 
     def search(
             self, 
@@ -113,7 +120,9 @@ class PostRepository:
             author_obj = self.ensure_author(
                 author.email)
 
-        post = PostORM(title=title, content=content,
+        unique_slug = ensure_unique_slug(db=self.db, base_text=title)
+
+        post = PostORM(title=title, slug=unique_slug, content=content,
                        image_url=image_url, user=author_obj, category_id=category_id)
 
         for tag in tags:

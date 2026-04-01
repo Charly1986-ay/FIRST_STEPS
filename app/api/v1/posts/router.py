@@ -110,13 +110,15 @@ def filter_by_tags(
         response_description='Post encontrado'
 ) 
 def get_post(
-    post_id: int = Path(
-        ...,
-        ge=1,
-        title='ID del post',
-        description='identificador entero del post. Debe ser mayor que 0', 
-        example=1,        
-    ),
+    post_id: Annotated[
+        int,
+        Path(
+            ge=1,
+            title="ID del post",
+            description="Identificador entero del post. Debe ser mayor que 0",
+            example=1,
+        ),
+    ],
     include_content: bool = Query(default=True, description='Include post content'),
     db: Session = Depends(get_db)
 ):  
@@ -194,6 +196,22 @@ def update_post(
             status_code=500, 
             detail='Error al actualizar el post'
         )
+    
+@router.get('/post/slug', response_model=Union[PostPublic, PostSummary])
+def get_post_by_slug(slug: str, include_content: bool, db: Session = Depends(get_db)):
+    repository = PostRepository(db=db)
+    post = repository.get_by_slug(slug=slug)
+
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail='Post no encontrado'
+        )
+    
+    if include_content:
+        return PostSummary.model_validate(post, from_attributes=True)
+
+    return PostSummary.model_validate(post, from_attributes=True)
 
 
 @router.delete(
@@ -210,7 +228,10 @@ def delete_post(
     post = repository.get(post_id=post_id)
 
     if not post:
-        raise HTTPException(status_code=404, detail='Post no encontrado')
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail='Post no encontrado'
+        )
     
     try:     
         repository.delete_post(post=post)        
