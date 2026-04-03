@@ -7,6 +7,7 @@ from app.api.v1.auth.router import router as auth_router
 from app.api.v1.categories.router import router as categories_router
 from app.api.v1.uploads.router import router as upload_router
 from app.api.v1.tags.router import router as tag_router
+from app.core.middleware import register_middleware
 
 import os
 
@@ -17,6 +18,8 @@ MEDIA_DIR = 'app/media'
 def create_app() -> FastAPI:
     app = FastAPI(title='Mini blog')
     Base.metadata.create_all(bind=engine) # dev
+
+    register_middleware(app=app)
 
     app.include_router(auth_router, prefix='/api/v1')
     app.include_router(post_router)
